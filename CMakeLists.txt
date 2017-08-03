@@ -7,6 +7,7 @@ project(LibQi)
 find_package(qibuild)
 qi_sanitize_compile_flags(HIDDEN_SYMBOLS)
 
+set(WITH_PROBES OFF)
 
 include(CheckSymbolExists)
 check_symbol_exists(_SC_HOST_NAME_MAX "unistd.h" HAVE_SC_HOST_NAME_MAX)
@@ -52,12 +53,17 @@ option(WITH_PERF     "Performances test" ON)
 enable_testing()
 include(CMakeDependentOption)
 
-find_package(qiprobes)
-qiprobes_create_probe(tp_qi
-  src/tp_qi.in.h
-  PROVIDER_NAME qi_qi)
-qiprobes_instrument_files(tp_qi
-  src/eventloop.cpp)
+if (WITH_PROBES)
+  find_package(qiprobes)
+  qiprobes_create_probe(tp_qi
+    src/tp_qi.in.h
+    PROVIDER_NAME qi_qi)
+  qiprobes_instrument_files(tp_qi
+    src/eventloop.cpp)
+  set(_tp_qi "tp_qi")
+else()
+  set(_tp_qi "")
+endif()
 
 set(QI_H qi/detail/clock.hxx
          qi/detail/eventloop.hxx
@@ -369,7 +375,7 @@ qi_create_lib(qi SHARED
                  ${QIM_H}    ${QIM_C}
                  ${QIPERF_H} ${QIPERF_C}
               DEPENDS BOOST BOOST_ATOMIC BOOST_DATE_TIME BOOST_THREAD BOOST_CHRONO BOOST_FILESYSTEM BOOST_LOCALE BOOST_REGEX BOOST_PROGRAM_OPTIONS ${_ssldeps}
-              SUBMODULE tp_qi)
+              SUBMODULE ${_tp_qi})
 
 if (WITH_QT_QTCORE)
   qi_use_lib(qi QT_QTCORE)
@@ -393,5 +399,5 @@ endif()
 qi_stage_lib(qi INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/compat")
 
 add_subdirectory("examples")
-add_subdirectory("tests")
+#add_subdirectory("tests")
 add_subdirectory("bin")
